@@ -1,3 +1,4 @@
+import os
 import joblib
 import numpy as np
 from flask import Flask, request, jsonify, send_from_directory
@@ -5,7 +6,11 @@ from flask import Flask, request, jsonify, send_from_directory
 # ─────────────────────────────────────────
 # LOAD MODEL & SCALER
 # ─────────────────────────────────────────
-app    = Flask(__name__, static_folder='.')
+app = Flask(__name__, static_folder='.')
+
+if not os.path.exists('iris_model.pkl'):
+    import save_model
+
 model  = joblib.load('iris_model.pkl')
 scaler = joblib.load('iris_scaler.pkl')
 
@@ -17,7 +22,6 @@ print("✅ Model & scaler loaded successfully", flush=True)
 # ─────────────────────────────────────────
 # ROUTES
 # ─────────────────────────────────────────
-
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -32,7 +36,6 @@ def predict():
     if not data:
         return jsonify({'error': 'No JSON body provided'}), 400
 
-    # Validate all 4 features present
     missing = [f for f in FEATURES if f not in data]
     if missing:
         return jsonify({'error': f'Missing fields: {missing}'}), 400
@@ -47,7 +50,6 @@ def predict():
     except ValueError:
         return jsonify({'error': 'All values must be numbers'}), 400
 
-    # Scale & predict
     features_sc = scaler.transform(features)
     pred        = model.predict(features_sc)[0]
     probs       = model.predict_proba(features_sc)[0]
@@ -62,7 +64,6 @@ def predict():
             'virginica':  round(float(probs[2]), 4),
         }
     }), 200
-
 
 if __name__ == '__main__':
     print("🚀 Starting Iris Classifier API...")
